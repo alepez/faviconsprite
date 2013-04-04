@@ -1,18 +1,33 @@
 #!/bin/bash
 
-TMP_DIR="._faviconsprite_tmp"
+## Change this ##
+
 OUTPUT="sprite.gif"
-ICON_SIZE="14x14"
+OUTPUT_CSS="sprite.css"
+ICON_SIZE="14"
+
+## Should not change ##
+
+TMP_DIR="._faviconsprite_tmp"
+
+## Absolutly not change ##
+###############################################################################
 
 COLS=0
 ROWS=0
 
+function beautify() {
+  echo $1 | sed 's/\./_/g'
+}
+
 function download_favicon() {
   local domain="$1"
   local src="http://${domain}/favicon.ico"
-  local dst="$( echo $domain | sed 's/\./_/' )"
+  local dst="$( beautify $domain )"
   wget --quiet "${src}" -O "${dst}.ico"
-  convert "${dst}.ico" -resize ${ICON_SIZE} "${dst}.png"
+  convert "${dst}.ico" -resize ${ICON_SIZE}x${ICON_SIZE} "${dst}.png"
+  rm "${dst}.ico"
+  echo "${dst}.png"
 }
 
 function read_answer() {
@@ -33,36 +48,47 @@ function check_if_directory_exists() {
   } fi
 }
 
-function generate_sprite() {
-  echo -n "Generating sprite "
-  cd "${TMP_DIR}"
-  for i in $@; do {
-    echo -n "$i " 
-    download_favicon "$i"
-  } done
-  echo
-  montage -background transparent -geometry +0+0 *.png "${OUTPUT}"
-  calculate_row_col
+function generate_css() {
   k=0
   c=0
   r=0
   for i in $@; do {
-    echo $i
+    let "x=c*ICON_SIZE"
+    let "y=r*ICON_SIZE"
+    position="${x}px ${y}px"
+    echo ".icon-$( beautify $i ) { background-position: $position; }"
+    let "k++"
+    let "c++"
+    if [ $c -gt $ROWS ]; then c=0; let "r++"; fi
   } done
+}
+
+function generate_sprite() {
+  echo "Downloading"
+  cd "${TMP_DIR}"
+  icons=""
+  for i in $@; do {
+    icon=$( download_favicon "$i" )
+    icons="${icons} $icon"
+  } done
+  echo
+  echo "Generating sprite"
+  montage -background transparent -geometry +0+0 $icons "${OUTPUT}"
+  calculate_row_col
+  echo "Generating css"
+  generate_css $@ > "${OUTPUT_CSS}"
 }
 
 function calculate_row_col() {
   local sprite_size=$( identify "${OUTPUT}" | awk '{ print $3 }' )
   local sprite_width=$( echo $sprite_size | sed 's/x.*//' )
   local sprite_height=$( echo $sprite_size | sed 's/.*x//' )
-  local icon_width=$( echo $ICON_SIZE | sed 's/x.*//' )
-  local icon_height=$( echo $ICON_SIZE | sed 's/.*x//' )
-  let "COLS=sprite_width/icon_height"
-  let "ROWS=sprite_height/icon_height"
+  let "COLS=sprite_width/${ICON_SIZE}"
+  let "ROWS=sprite_height/${ICON_SIZE}"
 }
 
-check_if_directory_exists
+#check_if_directory_exists
 
-mkdir "${TMP_DIR}"
+#mkdir "${TMP_DIR}"
 
 ( generate_sprite $@ )
