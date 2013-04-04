@@ -1,0 +1,39 @@
+#!/bin/bash
+
+TMP_DIR="._faviconsprite_tmp"
+OUTPUT="faviconsprite.png"
+ICON_SIZE="14x14"
+
+function download_favicon() {
+  local domain="$1"
+  local src="http://${domain}/favicon.ico"
+  local dst="$( echo $domain | sed 's/\./_/' )"
+  wget --quiet "${src}" -O "${dst}.ico"
+  convert "${dst}.ico" -resize ${ICON_SIZE} "${dst}.png"
+  montage -background transparent -geometry +0+0 *.png sprite.gif
+}
+
+function read_answer() {
+  local answer;
+  read answer;
+  echo $answer;
+}
+
+if [ -e "${TMP_DIR}" ]; then {
+  echo "Error: $TMP_DIR directory exists. Rewrite? y/N"
+  if [ "$( read_answer )" == "y" ]; then {
+    rm -r "${TMP_DIR}"   
+  } else {
+    echo "Aborting"
+    exit
+  } fi
+} fi
+
+mkdir "${TMP_DIR}"
+
+(
+  cd "${TMP_DIR}"
+  for i in $@; do {
+    download_favicon "$i"
+  } done
+)
