@@ -1,8 +1,11 @@
 #!/bin/bash
 
 TMP_DIR="._faviconsprite_tmp"
-OUTPUT="faviconsprite.png"
+OUTPUT="sprite.gif"
 ICON_SIZE="14x14"
+
+COLS=0
+ROWS=0
 
 function download_favicon() {
   local domain="$1"
@@ -10,7 +13,6 @@ function download_favicon() {
   local dst="$( echo $domain | sed 's/\./_/' )"
   wget --quiet "${src}" -O "${dst}.ico"
   convert "${dst}.ico" -resize ${ICON_SIZE} "${dst}.png"
-  montage -background transparent -geometry +0+0 *.png sprite.gif
 }
 
 function read_answer() {
@@ -19,21 +21,48 @@ function read_answer() {
   echo $answer;
 }
 
-if [ -e "${TMP_DIR}" ]; then {
-  echo "Error: $TMP_DIR directory exists. Rewrite? y/N"
-  if [ "$( read_answer )" == "y" ]; then {
-    rm -r "${TMP_DIR}"   
-  } else {
-    echo "Aborting"
-    exit
+function check_if_directory_exists() {
+  if [ -e "${TMP_DIR}" ]; then {
+    echo "Error: $TMP_DIR directory exists. Rewrite? y/N"
+    if [ "$( read_answer )" == "y" ]; then {
+      rm -r "${TMP_DIR}"   
+    } else {
+      echo "Aborting"
+      exit
+    } fi
   } fi
-} fi
+}
+
+function generate_sprite() {
+  echo -n "Generating sprite "
+  cd "${TMP_DIR}"
+  for i in $@; do {
+    echo -n "$i " 
+    download_favicon "$i"
+  } done
+  echo
+  montage -background transparent -geometry +0+0 *.png "${OUTPUT}"
+  calculate_row_col
+  k=0
+  c=0
+  r=0
+  for i in $@; do {
+    echo $i
+  } done
+}
+
+function calculate_row_col() {
+  local sprite_size=$( identify "${OUTPUT}" | awk '{ print $3 }' )
+  local sprite_width=$( echo $sprite_size | sed 's/x.*//' )
+  local sprite_height=$( echo $sprite_size | sed 's/.*x//' )
+  local icon_width=$( echo $ICON_SIZE | sed 's/x.*//' )
+  local icon_height=$( echo $ICON_SIZE | sed 's/.*x//' )
+  let "COLS=sprite_width/icon_height"
+  let "ROWS=sprite_height/icon_height"
+}
+
+check_if_directory_exists
 
 mkdir "${TMP_DIR}"
 
-(
-  cd "${TMP_DIR}"
-  for i in $@; do {
-    download_favicon "$i"
-  } done
-)
+( generate_sprite $@ )
