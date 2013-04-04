@@ -87,8 +87,12 @@ function calculate_row_col() {
   let "ROWS=sprite_height/${ICON_SIZE}"
 }
 
-#check_if_directory_exists
+check_if_directory_exists
 
-#mkdir "${TMP_DIR}"
+mkdir "${TMP_DIR}"
 
 ( generate_sprite $@ )
+
+mv "${TMP_DIR}/${OUTPUT}" "${TMP_DIR}/${OUTPUT_CSS}" .
+
+rm -r ${TMP_DIR}
