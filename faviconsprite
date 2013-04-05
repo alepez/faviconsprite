@@ -2,19 +2,23 @@
 
 ## Change this ##
 
-OUTPUT="sprite.gif"
-OUTPUT_CSS="sprite.css"
+OUTPUT="faviconsprite.gif"
+OUTPUT_CSS="faviconsprite.css"
 ICON_SIZE="14"
 
 ## Should not change ##
 
 TMP_DIR="._faviconsprite_tmp"
 
-## Absolutly not change ##
+## Do not change below this line ##
 ###############################################################################
 
 COLS=0
 ROWS=0
+
+function log() {
+    echo $@ 1>&2
+}
 
 function beautify() {
   echo $1 | sed 's/\./_/g'
@@ -24,8 +28,14 @@ function download_favicon() {
   local domain="$1"
   local src="http://${domain}/favicon.ico"
   local dst="$( beautify $domain )"
-  wget --quiet "${src}" -O "${dst}.ico"
-  convert "${dst}.ico" -resize ${ICON_SIZE}x${ICON_SIZE} "${dst}.png"
+  if ! wget --quiet "${src}" -O "${dst}.ico"; then {
+    log "Cannot download ${src}";
+    return;
+  } fi
+  if ! convert "${dst}.ico[0]" -resize ${ICON_SIZE}x${ICON_SIZE} "${dst}.png"; then {
+    log "Unable to convert image ${dst}.ico";
+    return;
+  } fi
   rm "${dst}.ico"
   echo "${dst}.png"
 }
@@ -38,17 +48,18 @@ function read_answer() {
 
 function check_if_directory_exists() {
   if [ -e "${TMP_DIR}" ]; then {
-    echo "Error: $TMP_DIR directory exists. Rewrite? y/N"
+    log "Error: $TMP_DIR directory exists. Rewrite? y/N"
     if [ "$( read_answer )" == "y" ]; then {
       rm -r "${TMP_DIR}"   
     } else {
-      echo "Aborting"
+      log "Aborting"
       exit
     } fi
   } fi
 }
 
 function generate_css() {
+  echo "[class^="icon-fav"],[class*=" icon-fav"] { background-image: url("../img/faviconsprite.gif"); }"
   k=0
   c=0
   r=0
@@ -56,7 +67,7 @@ function generate_css() {
     let "x=c*ICON_SIZE"
     let "y=r*ICON_SIZE"
     position="${x}px ${y}px"
-    echo ".icon-$( beautify $i ) { background-position: $position; }"
+    echo ".icon-fav-$( beautify $i ) { background-position: $position; }"
     let "k++"
     let "c++"
     if [ $c -gt $ROWS ]; then c=0; let "r++"; fi
@@ -64,18 +75,17 @@ function generate_css() {
 }
 
 function generate_sprite() {
-  echo "Downloading"
+  log "Downloading"
   cd "${TMP_DIR}"
   icons=""
   for i in $@; do {
     icon=$( download_favicon "$i" )
     icons="${icons} $icon"
   } done
-  echo
-  echo "Generating sprite"
+  log "Generating sprite"
   montage -background transparent -geometry +0+0 $icons "${OUTPUT}"
   calculate_row_col
-  echo "Generating css"
+  log "Generating css"
   generate_css $@ > "${OUTPUT_CSS}"
 }
 
@@ -95,4 +105,4 @@ mkdir "${TMP_DIR}"
 
 mv "${TMP_DIR}/${OUTPUT}" "${TMP_DIR}/${OUTPUT_CSS}" .
 
-rm -r ${TMP_DIR}
+#rm -r ${TMP_DIR}
