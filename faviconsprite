@@ -64,8 +64,8 @@ function generate_css() {
   c=0
   r=0
   for i in $@; do {
-    let "x=c*ICON_SIZE"
-    let "y=r*ICON_SIZE"
+    let "x=-c*ICON_SIZE"
+    let "y=-r*ICON_SIZE"
     position="${x}px ${y}px"
     echo ".icon-fav-$( beautify $i ) { background-position: $position; }"
     let "k++"
@@ -105,4 +105,4 @@ mkdir "${TMP_DIR}"
 
 mv "${TMP_DIR}/${OUTPUT}" "${TMP_DIR}/${OUTPUT_CSS}" .
 
-#rm -r ${TMP_DIR}
+rm -r ${TMP_DIR}
