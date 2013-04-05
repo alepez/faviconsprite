@@ -70,7 +70,7 @@ function generate_css() {
     echo ".icon-fav-$( beautify $i ) { background-position: $position; }"
     let "k++"
     let "c++"
-    if [ $c -gt $ROWS ]; then c=0; let "r++"; fi
+    if [ $c -ge $COLS ]; then c=0; let "r++"; fi
   } done
 }
 
